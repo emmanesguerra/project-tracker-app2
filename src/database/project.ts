@@ -62,6 +62,28 @@ export async function updateProject(
   }
 }
 
+export async function updateProjectTotalExpenses(
+  db: ReturnType<typeof useSQLiteContext>,
+  projectId: number
+) {
+  try {
+    const result = await db.getFirstAsync<{ total: number | null }>(
+      `SELECT SUM(amount) as total FROM receipts WHERE project_id = ?`,
+      [projectId]
+    );
+
+    const total = result?.total ?? 0;
+
+    await db.runAsync(
+      `UPDATE projects SET total_expense = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [total, projectId]
+    );
+  } catch (error) {
+    console.error('Error updating total_expenses for project:', error);
+    throw error;
+  }
+}
+
 export async function getProjectById(
   db: ReturnType<typeof useSQLiteContext>,
   id: number

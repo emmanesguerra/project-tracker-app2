@@ -1,6 +1,7 @@
 import ImageCaptureContainer from '@/src/components/ImageCaptureContainer';
 import CategoryModal from '@/src/components/modal/CategoryModal';
 import { addCategory, useCategories } from '@/src/database/categories';
+import { updateProjectTotalExpenses } from '@/src/database/project';
 import { addReceipt, addReceiptImage } from '@/src/database/receipts';
 import { styles } from '@/src/styles/global';
 import { generateImageFilename } from '@/src/utils/filename';
@@ -65,6 +66,8 @@ export default function NewReceiptPage() {
                 // Save to database
                 await addReceiptImage(db, newReceiptId, newPath);
             }
+
+            await updateProjectTotalExpenses(db, numericProjectId);
 
             Alert.alert('Success', 'Receipt added');
             router.back();

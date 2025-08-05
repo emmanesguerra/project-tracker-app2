@@ -1,6 +1,6 @@
 import EditProjectModal from '@/src/components/modal/EditProjectModal';
 import EditReceiptModal from '@/src/components/modal/EditReceiptModal';
-import { getProjectById, updateProject as saveProjectChanges } from '@/src/database/project';
+import { getProjectById, updateProject as saveProjectChanges, updateProjectTotalExpenses } from '@/src/database/project';
 import { updateReceipt, useReceipts } from '@/src/database/receipts';
 import { styles } from '@/src/styles/global';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -70,7 +70,10 @@ export default function ProjectPage() {
                 issuedAt: issuedAt.toISOString().split('T')[0], // format YYYY-MM-DD
             });
 
+            await updateProjectTotalExpenses(db, Number(id));
+
             await refreshReceipts();
+            await fetchProject();
             setModalReceiptVisible(false);
         } catch (error) {
             console.error('Error updating receipt:', error);
