@@ -96,3 +96,17 @@ export async function getProjectById(
     return null;
   }
 }
+
+export async function deleteProjectAndReceipts(
+  db: ReturnType<typeof useSQLiteContext>,
+  projectId: number
+) {
+  try {
+    await db.runAsync('DELETE FROM receipts WHERE project_id = ?', [projectId]);
+
+    await db.runAsync('DELETE FROM projects WHERE id = ?', [projectId]);
+  } catch (error) {
+    console.error('Error deleting project and its receipts:', error);
+    throw error;
+  }
+}

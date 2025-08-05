@@ -12,6 +12,7 @@ interface EditProjectModalProps {
     setBudget: (value: string) => void;
     onCancel: () => void;
     onSave: () => void;
+    onDelete: () => void;
 }
 
 const EditProjectModal: FC<EditProjectModalProps> = ({
@@ -24,6 +25,7 @@ const EditProjectModal: FC<EditProjectModalProps> = ({
     setBudget,
     onCancel,
     onSave,
+    onDelete
 }) => {
     return (
         <Modal visible={visible} animationType="slide" transparent>
@@ -58,9 +60,17 @@ const EditProjectModal: FC<EditProjectModalProps> = ({
                         style={styles.input}
                     />
 
-                    <View style={styles.actions}>
-                        <Button title="Cancel" color="gray" onPress={onCancel} />
-                        <Button title="Save" onPress={onSave} />
+                    
+
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+                        <View>
+                            <Button title="Delete" color="red" onPress={onDelete} />
+                        </View>
+
+                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                            <Button title="Cancel" color="gray" onPress={onCancel} />
+                            <Button title="Save" onPress={onSave} />
+                        </View>
                     </View>
                 </View>
             </View>

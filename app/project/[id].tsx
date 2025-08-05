@@ -1,9 +1,9 @@
 import EditProjectModal from '@/src/components/modal/EditProjectModal';
 import EditReceiptModal from '@/src/components/modal/EditReceiptModal';
-import { getProjectById, updateProject as saveProjectChanges, updateProjectTotalExpenses } from '@/src/database/project';
-import { updateReceipt, useReceipts } from '@/src/database/receipts';
+import { deleteProjectAndReceipts, getProjectById, updateProject as saveProjectChanges, updateProjectTotalExpenses } from '@/src/database/project';
+import { deleteReceipt, updateReceipt, useReceipts } from '@/src/database/receipts';
 import { styles } from '@/src/styles/global';
-import { deleteReceiptFolder } from '@/src/utils/imageUtils';
+import { deleteProjectFolder, deleteReceiptFolder } from '@/src/utils/imageUtils';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -100,12 +100,25 @@ export default function ProjectPage() {
         setReceiptImages(imagesMap);
     };
 
+    const handleDeleteProject = async () => {
+        if (!project) return;
+
+        try {
+            const projectId = Number(project.id);
+            await deleteProjectFolder(projectId);
+            await deleteProjectAndReceipts(db, projectId);
+            router.back();
+        } catch (error) {
+            console.error('Error deleting project:', error);
+        }
+    };
+
     const handleDeleteReceipt = async () => {
         if (!selectedReceipt) return;
 
         try {
             await deleteReceiptFolder(Number(id), selectedReceipt.id);
-            await db.runAsync('DELETE FROM receipts WHERE id = ?', [selectedReceipt.id]);
+            await deleteReceipt(db, Number(id), selectedReceipt.id);
 
             await updateProjectTotalExpenses(db, Number(id));
             await refreshReceipts();
@@ -236,6 +249,7 @@ export default function ProjectPage() {
                 setBudget={setBudget}
                 onCancel={() => setModalVisible(false)}
                 onSave={handleSave}
+                onDelete={handleDeleteProject}
             />
 
             <EditReceiptModal

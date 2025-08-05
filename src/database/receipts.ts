@@ -135,3 +135,17 @@ export async function getReceiptImages(
     );
     return rows.map((row) => row.image_name);
 }
+
+export async function deleteReceipt(
+    db: ReturnType<typeof useSQLiteContext>,
+    projectId: number,
+    receiptId: number
+) {
+    try {
+        // Delete receipt from DB (images are assumed to be in receipt_images table with FK or cleaned up manually)
+        await db.runAsync('DELETE FROM receipts WHERE id = ?', [receiptId]);
+    } catch (error) {
+        console.error('Error deleting receipt and its images:', error);
+        throw error;
+    }
+}
