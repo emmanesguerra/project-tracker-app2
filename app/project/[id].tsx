@@ -3,6 +3,7 @@ import EditReceiptModal from '@/src/components/modal/EditReceiptModal';
 import { getProjectById, updateProject as saveProjectChanges, updateProjectTotalExpenses } from '@/src/database/project';
 import { updateReceipt, useReceipts } from '@/src/database/receipts';
 import { styles } from '@/src/styles/global';
+import { deleteReceiptFolder } from '@/src/utils/imageUtils';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -97,6 +98,23 @@ export default function ProjectPage() {
         }
 
         setReceiptImages(imagesMap);
+    };
+
+    const handleDeleteReceipt = async () => {
+        if (!selectedReceipt) return;
+
+        try {
+            await deleteReceiptFolder(Number(id), selectedReceipt.id);
+            await db.runAsync('DELETE FROM receipts WHERE id = ?', [selectedReceipt.id]);
+
+            await updateProjectTotalExpenses(db, Number(id));
+            await refreshReceipts();
+            await fetchProject();
+
+            setModalReceiptVisible(false);
+        } catch (error) {
+            console.error('Error deleting receipt:', error);
+        }
     };
 
     useEffect(() => {
@@ -232,6 +250,7 @@ export default function ProjectPage() {
                 setIssuedAt={setIssuedAt}
                 onCancel={() => setModalReceiptVisible(false)}
                 onSave={handleSaveReceiptChanges}
+                onDelete={handleDeleteReceipt}
             />
         </SafeAreaView>
     );

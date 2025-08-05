@@ -17,6 +17,7 @@ interface EditReceiptModalProps {
     setIssuedAt: (date: Date) => void;
     onCancel: () => void;
     onSave: () => void;
+    onDelete: () => void;
 }
 
 const EditReceiptModal: FC<EditReceiptModalProps> = ({
@@ -31,6 +32,7 @@ const EditReceiptModal: FC<EditReceiptModalProps> = ({
     setIssuedAt,
     onCancel,
     onSave,
+    onDelete,
 }) => {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const { categories } = useCategories();
@@ -90,9 +92,15 @@ const EditReceiptModal: FC<EditReceiptModalProps> = ({
                         />
                     )}
 
-                    <View style={styles.actions}>
-                        <Button title="Cancel" color="gray" onPress={onCancel} />
-                        <Button title="Save" onPress={onSave} />
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+                        <View>
+                            <Button title="Delete" color="red" onPress={onDelete} />
+                        </View>
+
+                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                            <Button title="Cancel" color="gray" onPress={onCancel} />
+                            <Button title="Save" onPress={onSave} />
+                        </View>
                     </View>
                 </View>
             </View>
