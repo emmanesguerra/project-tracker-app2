@@ -76,6 +76,36 @@ export async function addReceipt(
     }
 }
 
+export async function updateReceipt(
+    db: ReturnType<typeof useSQLiteContext>,
+    receiptId: number,
+    {
+        name,
+        amount,
+        categoryId,
+        issuedAt,
+    }: {
+        name: string;
+        amount: number;
+        categoryId: number | null;
+        issuedAt: string;
+    }
+): Promise<void> {
+    try {
+        await db.runAsync(
+            `
+      UPDATE receipts
+      SET name = ?, amount = ?, category_id = ?, issued_at = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+            [name, amount, categoryId, issuedAt, receiptId]
+        );
+    } catch (error) {
+        console.error('Error updating receipt:', error);
+        throw error;
+    }
+}
+
 export async function addReceiptImage(
     db: ReturnType<typeof useSQLiteContext>,
     receiptId: number,
@@ -96,12 +126,12 @@ export async function addReceiptImage(
 }
 
 export async function getReceiptImages(
-  db: ReturnType<typeof useSQLiteContext>,
-  receiptId: number
+    db: ReturnType<typeof useSQLiteContext>,
+    receiptId: number
 ): Promise<string[]> {
-  const rows = await db.getAllAsync<{ image_name: string }>(
-    `SELECT image_name FROM receipt_images WHERE receipt_id = ?`,
-    [receiptId]
-  );
-  return rows.map((row) => row.image_name);
+    const rows = await db.getAllAsync<{ image_name: string }>(
+        `SELECT image_name FROM receipt_images WHERE receipt_id = ?`,
+        [receiptId]
+    );
+    return rows.map((row) => row.image_name);
 }

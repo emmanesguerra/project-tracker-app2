@@ -1,6 +1,7 @@
 import EditProjectModal from '@/src/components/modal/EditProjectModal';
+import EditReceiptModal from '@/src/components/modal/EditReceiptModal';
 import { getProjectById, updateProject as saveProjectChanges } from '@/src/database/project';
-import { useReceipts } from '@/src/database/receipts';
+import { updateReceipt, useReceipts } from '@/src/database/receipts';
 import { styles } from '@/src/styles/global';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -22,6 +23,13 @@ export default function ProjectPage() {
     const [project, setProject] = useState<any>(null);
     const [projectName, setProjectName] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
+    const [modalReceiptVisible, setModalReceiptVisible] = useState(false);
+    const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
+
+    const [receiptName, setReceiptName] = useState('');
+    const [amount, setAmount] = useState('');
+    const [categoryId, setCategoryId] = useState<number | null>(null);
+    const [issuedAt, setIssuedAt] = useState(new Date());
     const [description, setDescription] = useState('');
     const [budget, setBudget] = useState('');
     const { receipts, refreshReceipts } = useReceipts(project?.id);
@@ -48,6 +56,24 @@ export default function ProjectPage() {
             setModalVisible(false);
         } catch (error) {
             console.error('Error updating project:', error);
+        }
+    };
+
+    const handleSaveReceiptChanges = async () => {
+        if (!selectedReceipt) return;
+
+        try {
+            await updateReceipt(db, selectedReceipt.id, {
+                name: receiptName.trim(),
+                amount: parseFloat(amount),
+                categoryId,
+                issuedAt: issuedAt.toISOString().split('T')[0], // format YYYY-MM-DD
+            });
+
+            await refreshReceipts();
+            setModalReceiptVisible(false);
+        } catch (error) {
+            console.error('Error updating receipt:', error);
         }
     };
 
@@ -102,7 +128,7 @@ export default function ProjectPage() {
                 <Text style={styles.label}>Expense: ₱{project.total_expense}</Text>
                 <Text style={[styles.label, styles.small]}>Create: {project.created_at}</Text>
                 <Text style={[styles.label, styles.small]}>Update: {project.updated_at}</Text>
-            </TouchableOpacity >
+            </TouchableOpacity>
 
             <View style={styles.receiptHeader}>
                 <Text style={styles.receiptTitle}>Receipts</Text>
@@ -124,13 +150,23 @@ export default function ProjectPage() {
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
                     <View style={styles.receiptCard}>
-                        <View style={styles.receiptCardLeft}>
+                        <TouchableOpacity
+                            style={styles.receiptCardLeft}
+                            onPress={() => {
+                                setSelectedReceipt(item);
+                                setReceiptName(item.name);
+                                setAmount(item.amount.toString());
+                                setCategoryId(item.category_id);
+                                setIssuedAt(new Date(item.issued_at));
+                                setModalReceiptVisible(true);
+                            }}
+                        >
                             <Text style={styles.receiptName}>{item.name}</Text>
                             <Text style={styles.receiptAmount}>₱{item.amount.toFixed(2)}</Text>
                             <Text style={styles.receiptCategory}>{item.category_name}</Text>
                             <Text style={styles.receiptDate}>Issued At: {item.issued_at}</Text>
+                        </TouchableOpacity>
 
-                        </View>
                         <View style={styles.receiptCardRight}>
                             {receiptImages[item.id]?.length > 0 && (
                                 <ScrollView horizontal style={styles.imageScroll}>
@@ -157,7 +193,9 @@ export default function ProjectPage() {
                                     })
                                 }
                             >
-                                <Text style={styles.viewGalleryText}><MaterialIcons name="attachment" size={16} color="white" /> Images</Text>
+                                <Text style={styles.viewGalleryText}>
+                                    <MaterialIcons name="attachment" size={16} color="white" /> Images
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -177,6 +215,20 @@ export default function ProjectPage() {
                 setBudget={setBudget}
                 onCancel={() => setModalVisible(false)}
                 onSave={handleSave}
+            />
+
+            <EditReceiptModal
+                visible={modalReceiptVisible}
+                receiptName={receiptName}
+                setReceiptName={setReceiptName}
+                categoryId={categoryId}
+                setCategoryId={setCategoryId}
+                amount={amount}
+                setAmount={setAmount}
+                issuedAt={issuedAt}
+                setIssuedAt={setIssuedAt}
+                onCancel={() => setModalReceiptVisible(false)}
+                onSave={handleSaveReceiptChanges}
             />
         </SafeAreaView>
     );
