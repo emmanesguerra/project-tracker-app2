@@ -1,7 +1,7 @@
 import EditProjectModal from '@/src/components/modal/EditProjectModal';
 import EditReceiptModal from '@/src/components/modal/EditReceiptModal';
 import { deleteProjectAndReceipts, getProjectById, updateProject as saveProjectChanges, updateProjectTotalExpenses } from '@/src/database/project';
-import { deleteReceipt, updateReceipt, useReceipts } from '@/src/database/receipts';
+import { deleteReceipt, getImagesByReceiptId, updateReceipt, useReceipts } from '@/src/database/receipts';
 import { styles } from '@/src/styles/global';
 import { deleteProjectFolder, deleteReceiptFolder } from '@/src/utils/imageUtils';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -87,11 +87,9 @@ export default function ProjectPage() {
 
         for (const receipt of receipts) {
             try {
-                const images = await db.getAllAsync<{ image_name: string }>(
-                    `SELECT image_name FROM receipt_images WHERE receipt_id = ?`,
-                    [receipt.id]
-                );
-                imagesMap[receipt.id] = images.map((img) => img.image_name);
+                const images = await getImagesByReceiptId(db, receipt.id);
+                imagesMap[receipt.id] = images;
+
             } catch (error) {
                 console.error(`Error loading images for receipt ${receipt.id}:`, error);
             }

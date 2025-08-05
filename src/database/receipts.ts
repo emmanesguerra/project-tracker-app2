@@ -1,4 +1,4 @@
-import { useSQLiteContext } from 'expo-sqlite';
+import { SQLiteDatabase, useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 
 export interface Receipt {
@@ -149,3 +149,19 @@ export async function deleteReceipt(
         throw error;
     }
 }
+
+export const getImagesByReceiptId = async (
+    db: SQLiteDatabase,
+    receiptId: number
+): Promise<string[]> => {
+    try {
+        const images = await db.getAllAsync<{ image_name: string }>(
+            'SELECT image_name FROM receipt_images WHERE receipt_id = ?',
+            [receiptId]
+        );
+        return images.map((img) => img.image_name);
+    } catch (error) {
+        console.error(`Error fetching images for receipt ${receiptId}:`, error);
+        return [];
+    }
+};
