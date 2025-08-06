@@ -155,9 +155,9 @@ export default function ProjectPage() {
                     <Text style={styles.label}>{project.description}</Text>
                 )}
                 {project.budget != null && project.budget !== 0 && (
-                    <Text style={styles.label}>Budget: ₱{project.budget}</Text>
+                    <Text style={styles.label}>Budget: ₱{Number(project.budget).toLocaleString()}</Text>
                 )}
-                <Text style={styles.label}>Expense: ₱{project.total_expense}</Text>
+                <Text style={styles.label}>Expense: ₱{Number(project.total_expense).toLocaleString()}</Text>
                 <Text style={[styles.label, styles.small]}>Create: {project.created_at}</Text>
                 <Text style={[styles.label, styles.small]}>Update: {project.updated_at}</Text>
             </TouchableOpacity>
@@ -194,7 +194,7 @@ export default function ProjectPage() {
                             }}
                         >
                             <Text style={styles.receiptName}>{item.name}</Text>
-                            <Text style={styles.receiptAmount}>₱{item.amount.toFixed(2)}</Text>
+                            <Text style={styles.receiptAmount}>₱{Number(item.amount).toLocaleString()}</Text>
                             <Text style={styles.receiptCategory}>{item.category_name}</Text>
                             <Text style={styles.receiptDate}>Issued At: {item.issued_at}</Text>
                         </TouchableOpacity>

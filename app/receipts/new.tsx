@@ -31,6 +31,7 @@ export default function NewReceiptPage() {
 
     const { categories, refreshCategories } = useCategories();
     const [imageUris, setImageUris] = useState<string[]>([]);
+    const [rawAmount, setRawAmount] = useState('');
 
     const handleSave = async () => {
         if (!name || !amount || isNaN(Number(amount))) {
@@ -44,7 +45,7 @@ export default function NewReceiptPage() {
                 numericProjectId,
                 categoryId,
                 name,
-                parseFloat(amount),
+                parseFloat(amount.replace(/,/g, '')),
                 issuedAt.toISOString().slice(0, 10)
             );
 
@@ -104,6 +105,18 @@ export default function NewReceiptPage() {
         router.back(); // This navigates back to the previous screen
     };
 
+    const getFormattedAmount = (value: string) => {
+        if (!value) return '';
+        return Number(value).toLocaleString(); // adds commas
+    };
+
+    const handleChange = (text: string) => {
+        // Remove all non-digit characters
+        const clean = text.replace(/[^0-9]/g, '');
+        setRawAmount(clean);
+        setAmount(clean);
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <Text style={styles.pageSubtitle}>{projectName ? `Receipt for` : 'New Receipt'}</Text>
@@ -136,8 +149,8 @@ export default function NewReceiptPage() {
                 <View style={styles.halfInputContainer}>
                     <Text style={styles.label}>Amount (₱)</Text>
                     <TextInput
-                        value={amount}
-                        onChangeText={setAmount}
+                        value={getFormattedAmount(rawAmount)} // display formatted
+                        onChangeText={handleChange}
                         placeholder="Enter amount"
                         keyboardType="numeric"
                         style={styles.input}

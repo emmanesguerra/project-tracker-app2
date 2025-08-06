@@ -36,10 +36,24 @@ const EditReceiptModal: FC<EditReceiptModalProps> = ({
 }) => {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const { categories } = useCategories();
+    const [rawAmount, setRawAmount] = useState(amount);
 
     const handleDateChange = (_: any, selectedDate?: Date) => {
         setShowDatePicker(false);
         if (selectedDate) setIssuedAt(selectedDate);
+    };
+
+    
+    const getFormattedAmount = (value: string) => {
+        if (!value) return '';
+        return Number(value).toLocaleString(); // adds commas
+    };
+
+    const handleChange = (text: string) => {
+        // Remove all non-digit characters
+        const clean = text.replace(/[^0-9]/g, '');
+        setRawAmount(clean);
+        setAmount(clean);
     };
 
     return (
@@ -71,8 +85,8 @@ const EditReceiptModal: FC<EditReceiptModalProps> = ({
 
                     <Text style={styles.label}>Amount (₱)</Text>
                     <TextInput
-                        value={amount}
-                        onChangeText={setAmount}
+                        value={getFormattedAmount(rawAmount)} // display formatted
+                        onChangeText={handleChange}
                         placeholder="Enter amount"
                         keyboardType="numeric"
                         style={styles.input}

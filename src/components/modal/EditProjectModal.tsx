@@ -1,5 +1,5 @@
 import { styles } from '@/src/styles/global';
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import { Button, Modal, Text, TextInput, View } from 'react-native';
 
 interface EditProjectModalProps {
@@ -27,6 +27,21 @@ const EditProjectModal: FC<EditProjectModalProps> = ({
     onSave,
     onDelete
 }) => {
+
+    const [rawAmount, setRawAmount] = useState(budget);
+
+    const getFormattedAmount = (value: string) => {
+        if (!value) return '';
+        return Number(value).toLocaleString(); // adds commas
+    };
+
+    const handleChange = (text: string) => {
+        // Remove all non-digit characters
+        const clean = text.replace(/[^0-9]/g, '');
+        setRawAmount(clean);
+        setBudget(clean);
+    };
+
     return (
         <Modal visible={visible} animationType="slide" transparent>
             <View style={styles.modalOverlay}>
@@ -53,14 +68,12 @@ const EditProjectModal: FC<EditProjectModalProps> = ({
 
                     <Text style={styles.label}>Budget</Text>
                     <TextInput
-                        value={budget}
-                        onChangeText={setBudget}
+                        value={getFormattedAmount(rawAmount)} // display formatted
+                        onChangeText={handleChange}
                         placeholder="Enter budget"
                         keyboardType="numeric"
                         style={styles.input}
                     />
-
-                    
 
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
                         <View>
