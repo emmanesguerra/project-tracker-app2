@@ -1,3 +1,4 @@
+import { AntDesign } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -9,7 +10,7 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
 
@@ -26,6 +27,14 @@ const GalleryPage = () => {
         const loadImages = async () => {
             try {
                 const folderPath = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}/`;
+                const folderInfo = await FileSystem.getInfoAsync(folderPath);
+
+                if (!folderInfo.exists || !folderInfo.isDirectory) {
+                    console.warn('Folder does not exist:', folderPath);
+                    setImageUris([]); // explicitly clear
+                    return;
+                }
+
                 const files = await FileSystem.readDirectoryAsync(folderPath);
                 const imagePaths = files
                     .filter(file => file.endsWith('.jpg') || file.endsWith('.png'))
@@ -55,33 +64,43 @@ const GalleryPage = () => {
         );
     }
 
-    if (!imageUris.length) {
-        return (
-            <View style={styles.centered}>
-                <Text style={styles.emptyText}>No images found.</Text>
-            </View>
-        );
-    }
-
     const imageObjects = imageUris.map(uri => ({ uri }));
 
     return (
         <View style={styles.container}>
-            {/* Top Preview Image */}
-            <TouchableOpacity onPress={() => openViewer(selectedIndex)} activeOpacity={0.9}>
-                <Image
-                    source={{ uri: imageUris[selectedIndex] }}
-                    style={styles.previewImage}
-                    resizeMode="contain"
-                />
-            </TouchableOpacity>
+            {/* Top Preview or Placeholder */}
+            {imageUris.length > 0 ? (
+                <TouchableOpacity onPress={() => openViewer(selectedIndex)} activeOpacity={0.9}>
+                    <Image
+                        source={{ uri: imageUris[selectedIndex] }}
+                        style={styles.previewImage}
+                        resizeMode="contain"
+                    />
+                </TouchableOpacity>
+            ) : (
+                <View style={[styles.previewImage, styles.centered]}>
+                    <Text style={styles.emptyText}>No images found.</Text>
+                </View>
+            )}
 
-            {/* Thumbnail Scroll */}
+            {/* Thumbnails + Add Button Section */}
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.thumbnailScroll}
             >
+
+                {/* Add Image Button */}
+                <TouchableOpacity
+                    onPress={() => {
+                        // TODO: trigger image picker
+                        console.log('Add image pressed');
+                    }}
+                    style={[styles.thumbnailWrapper, styles.addButton]}
+                >
+                    <AntDesign name="camerao" size={50} color="white"/>
+                </TouchableOpacity>
+
                 {imageUris.map((uri, index) => (
                     <TouchableOpacity
                         key={index}
@@ -98,7 +117,7 @@ const GalleryPage = () => {
 
             {/* Fullscreen Viewer */}
             <ImageViewing
-                images={imageObjects}
+                images={imageUris.map(uri => ({ uri }))}
                 imageIndex={selectedIndex}
                 visible={viewerVisible}
                 onRequestClose={() => setViewerVisible(false)}
@@ -122,6 +141,7 @@ const styles = StyleSheet.create({
     thumbnailScroll: {
         paddingHorizontal: 20,
         alignItems: 'center',
+        height: 140,
     },
     thumbnailWrapper: {
         marginRight: 10,
@@ -130,7 +150,8 @@ const styles = StyleSheet.create({
         borderColor: 'transparent',
     },
     activeThumbnail: {
-        borderColor: '#007bff',
+        borderColor: '#3d6185ff',
+        backgroundColor: '#3d6185ff',
     },
     thumbnail: {
         width: 100,
@@ -145,5 +166,19 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 16,
         color: '#888',
+    },
+    addButton: {
+        width: 100,
+        height: 120,
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: '#3d6185ff',
+        backgroundColor: '#3d6185ff',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    addButtonText: {
+        fontSize: 40,
+        color: '#fff',
     },
 });

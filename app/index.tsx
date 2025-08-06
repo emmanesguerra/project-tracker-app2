@@ -61,7 +61,7 @@ export default function HomePage() {
               )}
 
               {item.budget != null && item.budget !== 0 && (
-                <Text style={styles.projectBudget}>Budget: ₱{item.budget}</Text>
+                <Text style={styles.projectBudget}>Budget: ₱{Number(item.budget).toLocaleString()}</Text>
               )}
 
               <Text style={styles.projectDate}>Created: {item.created_at}</Text>
