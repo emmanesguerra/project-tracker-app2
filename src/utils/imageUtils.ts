@@ -1,12 +1,12 @@
 import * as FileSystem from 'expo-file-system';
 
 export async function deleteReceiptFolder(projectId: number, receiptId: number) {
-    const folderPath = `${FileSystem.documentDirectory}${projectId}/${receiptId}`;
+    const folderPath = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}`;
     await deleteFolder(folderPath);
 }
 
 export async function deleteProjectFolder(projectId: number) {
-    const folderPath = `${FileSystem.documentDirectory}${projectId}`;
+    const folderPath = `${FileSystem.documentDirectory}images/${projectId}`;
     await deleteFolder(folderPath);
 }
 

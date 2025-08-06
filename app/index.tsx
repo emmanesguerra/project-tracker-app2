@@ -1,10 +1,11 @@
 import CreateProjectModal from '@/src/components/modal/CreateProjectModal';
 import { addProject, useProjects } from '@/src/database/project';
 import { styles } from '@/src/styles/global';
+import { exportDataToCSV } from '@/src/utils/exportCsv';
 import Octicons from '@expo/vector-icons/Octicons';
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, Pressable, StatusBar, Text, View } from 'react-native';
+import { FlatList, Pressable, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomePage() {
@@ -22,6 +23,10 @@ export default function HomePage() {
     } catch (error) {
       console.error('Failed to create project:', error);
     }
+  };
+
+  const handleExport = async () => {
+    await exportDataToCSV(db);
   };
 
   return (
@@ -64,6 +69,16 @@ export default function HomePage() {
           </Link>
         )}
       />
+
+
+      <TouchableOpacity onPress={handleExport}>
+        <Text>Export to CSV</Text>
+      </TouchableOpacity>
+
+
+      <TouchableOpacity onPress={handleExport}>
+        <Text>Export All Uploaded Images</Text>
+      </TouchableOpacity>
 
       <CreateProjectModal
         visible={modalVisible}

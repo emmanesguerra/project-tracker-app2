@@ -52,7 +52,7 @@ export default function NewReceiptPage() {
                 const uri = imageUris[i];
 
                 const filename = generateImageFilename(numericProjectId, newReceiptId, i + 1);
-                const folderPath = `${projectId}/${newReceiptId}`;
+                const folderPath = `images/${projectId}/${newReceiptId}`;
                 const newPath = `${FileSystem.documentDirectory}${folderPath}/${filename}`;
 
                 // Ensure directory exists

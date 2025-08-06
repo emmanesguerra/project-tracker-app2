@@ -25,7 +25,7 @@ const GalleryPage = () => {
     useEffect(() => {
         const loadImages = async () => {
             try {
-                const folderPath = `${FileSystem.documentDirectory}${projectId}/${receiptId}/`;
+                const folderPath = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}/`;
                 const files = await FileSystem.readDirectoryAsync(folderPath);
                 const imagePaths = files
                     .filter(file => file.endsWith('.jpg') || file.endsWith('.png'))
