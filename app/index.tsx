@@ -2,7 +2,6 @@ import CreateProjectModal from '@/src/components/modal/CreateProjectModal';
 import { addProject, useProjects } from '@/src/database/project';
 import { styles } from '@/src/styles/global';
 import { exportDataToCSV } from '@/src/utils/exportCsv';
-import { zipAndShareImages } from '@/src/utils/exportImagesZip';
 import Octicons from '@expo/vector-icons/Octicons';
 import { Link } from 'expo-router';
 import { useState } from 'react';
@@ -71,15 +70,11 @@ export default function HomePage() {
         )}
       />
 
-
-      <TouchableOpacity onPress={handleExport}>
-        <Text>Export to CSV</Text>
-      </TouchableOpacity>
-
-
-      <TouchableOpacity onPress={zipAndShareImages}>
-        <Text>Export All Uploaded Images</Text>
-      </TouchableOpacity>
+      <View style={styles.exportButtonContainer}>
+        <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
+          <Text style={styles.exportButtonText}>Export to CSV</Text>
+        </TouchableOpacity>
+      </View>
 
       <CreateProjectModal
         visible={modalVisible}
