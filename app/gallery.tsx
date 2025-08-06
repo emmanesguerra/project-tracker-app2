@@ -1,4 +1,4 @@
-import { addReceiptImage } from '@/src/database/receipts';
+import { addReceiptImage, deleteReceiptImage } from '@/src/database/receipts';
 import { generateImageFilename } from '@/src/utils/filename';
 import { AntDesign, MaterialIcons } from '@expo/vector-icons'; // ⬅️ ADDED
 import * as FileSystem from 'expo-file-system';
@@ -93,13 +93,52 @@ const GalleryPage = () => {
                     to: newPath,
                 });
 
-                await addReceiptImage(db, Number(receiptId), newPath);
+                await addReceiptImage(db, Number(receiptId), newFilename);
                 setImageUris(prev => [...prev, newPath]);
             } catch (err) {
                 console.error('Failed to save image:', err);
                 Alert.alert('Error', 'Could not save image.');
             }
         }
+    };
+
+    const handleDeleteImage = () => {
+        Alert.alert(
+            'Delete Image',
+            'Are you sure you want to delete this image?',
+            [
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const imageToDelete = imageUris[selectedIndex];
+
+                            await deleteReceiptImage(db, Number(receiptId), imageToDelete);
+
+                            await FileSystem.deleteAsync(imageToDelete);
+
+                            // 2. Update UI
+                            const newUris = imageUris.filter((_, i) => i !== selectedIndex);
+                            setImageUris(newUris);
+
+                            // Adjust selected index
+                            if (newUris.length === 0) setSelectedIndex(0);
+                            else if (selectedIndex >= newUris.length) setSelectedIndex(newUris.length - 1);
+
+                            Alert.alert('Deleted', 'Image deleted.');
+                        } catch (err) {
+                            console.error('Error deleting image:', err);
+                            Alert.alert('Error', 'Could not delete the image.');
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     if (loading) {
@@ -122,7 +161,7 @@ const GalleryPage = () => {
                     />
                     <TouchableOpacity
                         style={styles.deleteIcon}
-                        onPress={() => Alert.alert('Delete Clicked', 'You clicked the delete icon!')}
+                        onPress={handleDeleteImage}
                     >
                         <MaterialIcons name="delete" size={30} color="red" />
                     </TouchableOpacity>

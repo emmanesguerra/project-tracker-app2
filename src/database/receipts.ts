@@ -165,3 +165,19 @@ export const getImagesByReceiptId = async (
         return [];
     }
 };
+
+export async function deleteReceiptImage(
+    db: ReturnType<typeof useSQLiteContext>,
+    receiptId: number,
+    imageName: string
+): Promise<void> {
+    try {
+        await db.runAsync(
+            `DELETE FROM receipt_images WHERE receipt_id = ? AND image_name = ?`,
+            [receiptId, imageName]
+        );
+    } catch (error) {
+        console.error(`Error deleting image ${imageName} for receipt ${receiptId}:`, error);
+        throw error;
+    }
+};
