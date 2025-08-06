@@ -1,6 +1,6 @@
 import { addReceiptImage } from '@/src/database/receipts';
 import { generateImageFilename } from '@/src/utils/filename';
-import { AntDesign } from '@expo/vector-icons';
+import { AntDesign, MaterialIcons } from '@expo/vector-icons'; // ⬅️ ADDED
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams } from 'expo-router';
@@ -18,6 +18,7 @@ import {
     View
 } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
@@ -37,7 +38,7 @@ const GalleryPage = () => {
 
                 if (!folderInfo.exists || !folderInfo.isDirectory) {
                     console.warn('Folder does not exist:', folderPath);
-                    setImageUris([]); // explicitly clear
+                    setImageUris([]);
                     return;
                 }
 
@@ -62,16 +63,6 @@ const GalleryPage = () => {
         setViewerVisible(true);
     };
 
-    if (loading) {
-        return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#007bff" />
-            </View>
-        );
-    }
-
-    const imageObjects = imageUris.map(uri => ({ uri }));
-
     const handleAddImage = async () => {
         const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
@@ -95,18 +86,14 @@ const GalleryPage = () => {
             const newPath = `${folderPath}/${newFilename}`;
 
             try {
-                // Ensure folder exists
                 await FileSystem.makeDirectoryAsync(folderPath, { intermediates: true });
 
-                // Copy image
                 await FileSystem.copyAsync({
                     from: originalUri,
                     to: newPath,
                 });
 
                 await addReceiptImage(db, Number(receiptId), newPath);
-
-                // Update state
                 setImageUris(prev => [...prev, newPath]);
             } catch (err) {
                 console.error('Failed to save image:', err);
@@ -115,17 +102,31 @@ const GalleryPage = () => {
         }
     };
 
+    if (loading) {
+        return (
+            <View style={styles.centered}>
+                <ActivityIndicator size="large" color="#007bff" />
+            </View>
+        );
+    }
+
     return (
-        <View style={styles.container}>
-            {/* Top Preview or Placeholder */}
+        <SafeAreaView style={styles.container}>
+            {/* Top Preview with Delete Icon */}
             {imageUris.length > 0 ? (
-                <TouchableOpacity onPress={() => openViewer(selectedIndex)} activeOpacity={0.9}>
+                <View>
                     <Image
                         source={{ uri: imageUris[selectedIndex] }}
                         style={styles.previewImage}
                         resizeMode="contain"
                     />
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.deleteIcon}
+                        onPress={() => Alert.alert('Delete Clicked', 'You clicked the delete icon!')}
+                    >
+                        <MaterialIcons name="delete" size={30} color="red" />
+                    </TouchableOpacity>
+                </View>
             ) : (
                 <View style={[styles.previewImage, styles.centered]}>
                     <Text style={styles.emptyText}>No images found.</Text>
@@ -138,10 +139,8 @@ const GalleryPage = () => {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.thumbnailScroll}
             >
-
-                {/* Add Image Button */}
                 <TouchableOpacity
-                    onPress={handleAddImage} // updated here
+                    onPress={handleAddImage}
                     style={[styles.thumbnailWrapper, styles.addButton]}
                 >
                     <AntDesign name="camerao" size={50} color="white" />
@@ -168,7 +167,7 @@ const GalleryPage = () => {
                 visible={viewerVisible}
                 onRequestClose={() => setViewerVisible(false)}
             />
-        </View>
+        </SafeAreaView>
     );
 };
 
@@ -226,5 +225,14 @@ const styles = StyleSheet.create({
     addButtonText: {
         fontSize: 40,
         color: '#fff',
+    },
+    deleteIcon: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        backgroundColor: 'rgba(177, 41, 41, 0.6)',
+        padding: 6,
+        borderRadius: 20,
+        zIndex: 10,
     },
 });
