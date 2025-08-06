@@ -1,4 +1,4 @@
-import { addReceiptImage, deleteReceiptImage } from '@/src/database/receipts';
+import { addReceiptImage, deleteReceiptImage, getImagesByReceiptId } from '@/src/database/receipts';
 import { generateImageFilename } from '@/src/utils/filename';
 import { AntDesign, MaterialIcons } from '@expo/vector-icons'; // ⬅️ ADDED
 import * as FileSystem from 'expo-file-system';
@@ -30,31 +30,20 @@ const GalleryPage = () => {
     const [viewerVisible, setViewerVisible] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    const loadImages = async () => {
+        try {
+            const imageNames = await getImagesByReceiptId(db, Number(receiptId));
+            const baseFolder = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}/`;
+            const fullPaths = imageNames.map((name) => `${baseFolder}${name}`);
+            setImageUris(fullPaths);
+        } catch (error) {
+            console.error('Error loading images from DB:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const loadImages = async () => {
-            try {
-                const folderPath = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}/`;
-                const folderInfo = await FileSystem.getInfoAsync(folderPath);
-
-                if (!folderInfo.exists || !folderInfo.isDirectory) {
-                    console.warn('Folder does not exist:', folderPath);
-                    setImageUris([]);
-                    return;
-                }
-
-                const files = await FileSystem.readDirectoryAsync(folderPath);
-                const imagePaths = files
-                    .filter(file => file.endsWith('.jpg') || file.endsWith('.png'))
-                    .map(file => folderPath + file);
-
-                setImageUris(imagePaths);
-            } catch (error) {
-                console.error('Failed to load images:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         loadImages();
     }, [projectId, receiptId]);
 
@@ -94,7 +83,7 @@ const GalleryPage = () => {
                 });
 
                 await addReceiptImage(db, Number(receiptId), newFilename);
-                setImageUris(prev => [...prev, newPath]);
+                await loadImages();
             } catch (err) {
                 console.error('Failed to save image:', err);
                 Alert.alert('Error', 'Could not save image.');
@@ -103,6 +92,10 @@ const GalleryPage = () => {
     };
 
     const handleDeleteImage = () => {
+        const imageUri = imageUris[selectedIndex];
+        if (!imageUri) return;
+
+        // Ask for confirmation
         Alert.alert(
             'Delete Image',
             'Are you sure you want to delete this image?',
@@ -116,28 +109,28 @@ const GalleryPage = () => {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            const imageToDelete = imageUris[selectedIndex];
+                            // Extract filename
+                            const parts = imageUri.split('/');
+                            const imageName = parts[parts.length - 1];
 
-                            await deleteReceiptImage(db, Number(receiptId), imageToDelete);
+                            // Delete from database
+                            await deleteReceiptImage(db, Number(receiptId), imageName);
 
-                            await FileSystem.deleteAsync(imageToDelete);
+                            // Optional: Delete file from storage
+                            await FileSystem.deleteAsync(imageUri, { idempotent: true });
 
-                            // 2. Update UI
-                            const newUris = imageUris.filter((_, i) => i !== selectedIndex);
-                            setImageUris(newUris);
+                            // Refresh the images from DB
+                            await loadImages();
 
-                            // Adjust selected index
-                            if (newUris.length === 0) setSelectedIndex(0);
-                            else if (selectedIndex >= newUris.length) setSelectedIndex(newUris.length - 1);
-
-                            Alert.alert('Deleted', 'Image deleted.');
-                        } catch (err) {
-                            console.error('Error deleting image:', err);
-                            Alert.alert('Error', 'Could not delete the image.');
+                            // Update selected index
+                            setSelectedIndex((prev) => Math.max(0, prev - 1));
+                        } catch (error) {
+                            console.error('Failed to delete image:', error);
                         }
                     },
                 },
-            ]
+            ],
+            { cancelable: true }
         );
     };
 
