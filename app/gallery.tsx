@@ -1,9 +1,14 @@
+import { addReceiptImage } from '@/src/database/receipts';
+import { generateImageFilename } from '@/src/utils/filename';
 import { AntDesign } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     Dimensions,
     Image,
     ScrollView,
@@ -17,6 +22,7 @@ import ImageViewing from 'react-native-image-viewing';
 const { width, height } = Dimensions.get('window');
 
 const GalleryPage = () => {
+    const db = useSQLiteContext();
     const { projectId, receiptId } = useLocalSearchParams();
     const [imageUris, setImageUris] = useState<string[]>([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -66,6 +72,49 @@ const GalleryPage = () => {
 
     const imageObjects = imageUris.map(uri => ({ uri }));
 
+    const handleAddImage = async () => {
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+
+        if (permissionResult.status !== 'granted') {
+            Alert.alert('Permission Denied', 'Camera permission is required to take photos.');
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: false,
+            quality: 1,
+        });
+
+        if (!result.canceled && result.assets.length > 0) {
+            const photo = result.assets[0];
+            const originalUri = photo.uri;
+
+            const newFilename = generateImageFilename(Number(projectId), Number(receiptId), imageUris.length + 1);
+            const folderPath = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}`;
+            const newPath = `${folderPath}/${newFilename}`;
+
+            try {
+                // Ensure folder exists
+                await FileSystem.makeDirectoryAsync(folderPath, { intermediates: true });
+
+                // Copy image
+                await FileSystem.copyAsync({
+                    from: originalUri,
+                    to: newPath,
+                });
+
+                await addReceiptImage(db, Number(receiptId), newPath);
+
+                // Update state
+                setImageUris(prev => [...prev, newPath]);
+            } catch (err) {
+                console.error('Failed to save image:', err);
+                Alert.alert('Error', 'Could not save image.');
+            }
+        }
+    };
+
     return (
         <View style={styles.container}>
             {/* Top Preview or Placeholder */}
@@ -92,13 +141,10 @@ const GalleryPage = () => {
 
                 {/* Add Image Button */}
                 <TouchableOpacity
-                    onPress={() => {
-                        // TODO: trigger image picker
-                        console.log('Add image pressed');
-                    }}
+                    onPress={handleAddImage} // updated here
                     style={[styles.thumbnailWrapper, styles.addButton]}
                 >
-                    <AntDesign name="camerao" size={50} color="white"/>
+                    <AntDesign name="camerao" size={50} color="white" />
                 </TouchableOpacity>
 
                 {imageUris.map((uri, index) => (
