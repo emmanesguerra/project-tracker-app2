@@ -6,8 +6,6 @@ import { deleteReceipt, getImagesByReceiptId, updateReceipt, useReceipts } from 
 import { styles } from '@/src/styles/global';
 import { deleteProjectFolder, deleteReceiptFolder } from '@/src/utils/imageUtils';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-// Removed Picker import
-// import { Picker } from '@react-native-picker/picker';
 import * as FileSystem from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -21,7 +19,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker'; // ✅ ADDED
+import RNPickerSelect from 'react-native-picker-select';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProjectPage() {
@@ -45,21 +43,18 @@ export default function ProjectPage() {
     const { receipts, refreshReceipts } = useReceipts(project?.id, searchText, selectedFilter);
     const { categories } = useCategories();
 
-    // ✅ DropDownPicker states
-    const [open, setOpen] = useState(false);
-    const [filterValue, setFilterValue] = useState<string | null>(null);
     const [filterItems, setFilterItems] = useState<{ label: string; value: string }[]>([]);
 
     useEffect(() => {
-        setSelectedFilter(filterValue);
-    }, [filterValue]);
+        setSelectedFilter(filterItems.find(item => item.value === selectedFilter)?.value ?? '');
+    }, [selectedFilter]);
 
     useEffect(() => {
         const items = categories.map(c => ({
             label: c.name,
             value: c.id.toString()
         }));
-        setFilterItems([{ label: 'All Categories', value: '' }, ...items]);
+        setFilterItems([...items]);
     }, [categories]);
 
     const fetchProject = async () => {
@@ -216,7 +211,7 @@ export default function ProjectPage() {
                 </TouchableOpacity>
             </View>
 
-            <View style={{ flexDirection: 'row', gap: 10, zIndex: 1000 }}>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TextInput
                     style={[styles.input, { flex: 1 }]}
                     placeholder="Search receipts..."
@@ -224,19 +219,18 @@ export default function ProjectPage() {
                     onChangeText={setSearchText}
                 />
                 <View style={{ flex: 1 }}>
-                    <DropDownPicker
-                        open={open}
-                        setOpen={setOpen}
-                        value={filterValue}
-                        setValue={setFilterValue}
+                    <RNPickerSelect
+                        onValueChange={(value) => setSelectedFilter(value)}
                         items={filterItems}
-                        setItems={setFilterItems}
-                        placeholder="Filter By"
-                        style={[
-                            styles.input, // your global/base style
-                            { height: 40 } // conditional style
-                        ]}
-                        dropDownContainerStyle={{ zIndex: 1000, borderColor: '#ccc' }}
+                        value={selectedFilter}
+                        placeholder={{ label: 'Filter by category', value: '' }}
+                        useNativeAndroidPickerStyle={false}
+                        style={{
+                            inputAndroid: {
+                                ...styles.input,
+                                paddingHorizontal: 10,
+                            }
+                        }}
                     />
                 </View>
             </View>

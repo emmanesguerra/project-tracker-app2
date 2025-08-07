@@ -13,7 +13,7 @@ export function useCategories() {
 
   const fetchCategories = async () => {
     try {
-      const results = await db.getAllAsync<Category>('SELECT id, name FROM categories ORDER BY name DESC');
+      const results = await db.getAllAsync<Category>('SELECT id, name FROM categories ORDER BY id ASC');
       setCategories(results);
     } catch (error) {
       console.error('Error fetching categories:', error);
