@@ -2,6 +2,7 @@ import { addReceiptImage, deleteReceiptImage, getImagesByReceiptId } from '@/src
 import { AntDesign, MaterialIcons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import * as MediaLibrary from 'expo-media-library';
 import { useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import React, { useEffect, useState } from 'react';
@@ -154,6 +155,33 @@ const GalleryPage = () => {
         );
     };
 
+    const handleDownloadImage = async () => {
+        const selectedImage = images.find((img) => img.id === selectedImageId);
+        if (!selectedImage || !projectId || !receiptId) return;
+
+        try {
+            // 1. Get permission
+            const { status } = await MediaLibrary.requestPermissionsAsync();
+
+            // 2. Build source path
+            const srcPath = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}/${selectedImage.image_name}`;
+            const fileInfo = await FileSystem.getInfoAsync(srcPath);
+            if (!fileInfo.exists) {
+                Alert.alert('Download Failed', 'Image file does not exist.');
+                return;
+            }
+
+            // 3. Copy to Media Library (Downloads album)
+            const asset = await MediaLibrary.createAssetAsync(srcPath);
+            await MediaLibrary.createAlbumAsync('Downloads', asset, false);
+
+            Alert.alert('Download Successful', 'Image saved to Downloads folder.');
+            console.log('Downloaded to gallery:', asset.uri);
+        } catch (error) {
+            Alert.alert('Permission Denied', 'Storage permission is required to save images.');
+        }
+    };
+
     if (loading) {
         return (
             <View style={styles.centered}>
@@ -176,12 +204,20 @@ const GalleryPage = () => {
                         style={styles.previewImage}
                         resizeMode="contain"
                     />
-                    <TouchableOpacity
-                        style={styles.deleteIcon}
-                        onPress={handleDeleteImage}
-                    >
-                        <MaterialIcons name="delete" size={30} color="red" />
-                    </TouchableOpacity>
+                    <View style={styles.topButtonsContainer}>
+                        <TouchableOpacity
+                            style={styles.deleteIcon}
+                            onPress={handleDeleteImage}
+                        >
+                            <MaterialIcons name="delete" size={30} color="white" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.downloadIcon}
+                            onPress={handleDownloadImage}
+                        >
+                            <MaterialIcons name="file-download" size={30} color="white" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
             ) : (
                 <View style={[styles.previewImage, styles.centered]}>
@@ -285,12 +321,24 @@ const styles = StyleSheet.create({
         color: '#fff',
     },
     deleteIcon: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
         backgroundColor: 'rgba(177, 41, 41, 0.6)',
         padding: 6,
         borderRadius: 20,
+    },
+    topButtonsContainer: {
+        position: 'absolute',
+        top: 20,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
         zIndex: 10,
+    },
+
+    downloadIcon: {
+        backgroundColor: 'rgba(30, 150, 30, 0.8)',
+        padding: 6,
+        borderRadius: 20,
     },
 });
