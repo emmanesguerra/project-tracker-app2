@@ -1,4 +1,4 @@
-import { getImagesByReceiptId } from '@/src/database/receipts';
+import { deleteReceiptImage, getImagesByReceiptId } from '@/src/database/receipts';
 import { AntDesign, MaterialIcons } from '@expo/vector-icons'; // ⬅️ ADDED
 import * as FileSystem from 'expo-file-system';
 import { useLocalSearchParams } from 'expo-router';
@@ -6,6 +6,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     Dimensions,
     Image,
     ScrollView,
@@ -62,7 +63,55 @@ const GalleryPage = () => {
     const handleAddImage = async () => {
     };
 
-    const handleDeleteImage = () => {
+    const handleDeleteImage = async () => {
+        const selectedImage = images.find((img) => img.id === selectedImageId);
+        if (!selectedImage || !projectId || !receiptId) return;
+
+        Alert.alert(
+            'Delete Image',
+            `Are you sure you want to delete this image?\n\nName: ${selectedImage.image_name}\nID: ${selectedImage.id}`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            // Step 1: Delete from DB
+                            await deleteReceiptImage(db, selectedImage.id);
+
+                            // Step 2: Delete from File System
+                            const filePath = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}/${selectedImage.image_name}`;
+                            const fileInfo = await FileSystem.getInfoAsync(filePath);
+                            if (fileInfo.exists) {
+                                await FileSystem.deleteAsync(filePath);
+                                console.log(`Deleted file: ${filePath}`);
+                            } else {
+                                console.warn(`File not found: ${filePath}`);
+                            }
+
+                            // Step 3: Update state
+                            const updatedImages = images.filter((img) => img.id !== selectedImage.id);
+                            setImages(updatedImages);
+
+                            if (updatedImages.length > 0) {
+                                // Find index of the deleted image
+                                const deletedIndex = images.findIndex((img) => img.id === selectedImage.id);
+
+                                // Prefer the next image; fallback to previous if at end
+                                const nextIndex = deletedIndex < updatedImages.length ? deletedIndex : updatedImages.length - 1;
+                                setSelectedImageId(updatedImages[nextIndex].id);
+                            } else {
+                                setSelectedImageId(null); // No images left
+                            }
+
+                        } catch (error) {
+                            console.error('Error deleting image:', error);
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     if (loading) {
