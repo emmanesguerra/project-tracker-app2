@@ -13,25 +13,34 @@ export interface Receipt {
     updated_at: string;
 }
 
-export function useReceipts(projectId: number) {
+export function useReceipts(projectId: number, searchText: string) {
     const db = useSQLiteContext();
     const [receipts, setReceipts] = useState<Receipt[]>([]);
 
     const fetchReceipts = async () => {
         try {
-            const results = await db.getAllAsync<Receipt>(
-                `
-                SELECT 
-                    r.id, r.project_id, r.category_id, c.name AS category_name,
-                    r.name, r.amount, r.issued_at,
-                    r.created_at, r.updated_at
-                FROM receipts r
-                LEFT JOIN categories c ON r.category_id = c.id
-                WHERE r.project_id = ?
-                ORDER BY r.issued_at DESC, r.id DESC
-                `,
-                [projectId]
-            );
+            let query = `
+        SELECT 
+          r.id, r.project_id, r.category_id, c.name AS category_name,
+          r.name, r.amount, r.issued_at,
+          r.created_at, r.updated_at
+        FROM receipts r
+        LEFT JOIN categories c ON r.category_id = c.id
+        WHERE r.project_id = ?
+      `;
+
+            const params: any[] = [projectId];
+
+            // Add search filter
+            if (searchText.trim() !== '') {
+                query += ` AND (r.name LIKE ? OR CAST(r.amount AS TEXT) LIKE ?)`;
+                const keyword = `%${searchText}%`;
+                params.push(keyword, keyword);
+            }
+
+            query += ` ORDER BY r.issued_at DESC, r.id DESC`;
+
+            const results = await db.getAllAsync<Receipt>(query, params);
             setReceipts(results);
         } catch (error) {
             console.error('Error fetching receipts:', error);
@@ -42,7 +51,7 @@ export function useReceipts(projectId: number) {
         if (projectId) {
             fetchReceipts();
         }
-    }, [projectId]);
+    }, [projectId, searchText]); // 👈 watch searchText changes
 
     return { receipts, refreshReceipts: fetchReceipts };
 }

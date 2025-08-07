@@ -223,6 +223,7 @@ export const styles = StyleSheet.create({
         marginBottom: 12,
         borderRadius: 6,
         backgroundColor: "#fff",
+        height: 50
     },
     row: {
         flexDirection: 'row',
@@ -239,6 +240,7 @@ export const styles = StyleSheet.create({
         marginBottom: 8,
         overflow: 'hidden',
         backgroundColor: "#fff",
+        height: 50,
     },
     modalBackdrop: {
         flex: 1,

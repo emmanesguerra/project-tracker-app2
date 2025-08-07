@@ -5,6 +5,7 @@ import { deleteReceipt, getImagesByReceiptId, updateReceipt, useReceipts } from 
 import { styles } from '@/src/styles/global';
 import { deleteProjectFolder, deleteReceiptFolder } from '@/src/utils/imageUtils';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Picker } from '@react-native-picker/picker';
 import * as FileSystem from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -14,6 +15,7 @@ import {
     Image,
     ScrollView,
     Text,
+    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
@@ -34,8 +36,10 @@ export default function ProjectPage() {
     const [issuedAt, setIssuedAt] = useState(new Date());
     const [description, setDescription] = useState('');
     const [budget, setBudget] = useState('');
-    const { receipts, refreshReceipts } = useReceipts(project?.id);
     const [receiptImages, setReceiptImages] = useState<Record<number, string[]>>({});
+    const [searchText, setSearchText] = useState('');
+    const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+    const { receipts, refreshReceipts } = useReceipts(project?.id, searchText);
 
     const fetchProject = async () => {
         try {
@@ -193,6 +197,26 @@ export default function ProjectPage() {
                 >
                     <Text style={styles.addButtonText}>+ Add receipt</Text>
                 </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    placeholder="Search receipts..."
+                    value={searchText}
+                    onChangeText={setSearchText}
+                />
+                <View style={[styles.pickerWrapper, { flex: 1 }]}>
+                    <Picker
+                        selectedValue={selectedFilter}
+                        onValueChange={(itemValue) => setSelectedFilter(itemValue)}
+                    >
+                        <Picker.Item label="Filter By" value={null} />
+                        <Picker.Item label="Food" value="Food" />
+                        <Picker.Item label="Transport" value="Transport" />
+                        <Picker.Item label="Office" value="Office" />
+                        {/* Add more category options as needed */}
+                    </Picker>
+                </View>
             </View>
 
             <FlatList
