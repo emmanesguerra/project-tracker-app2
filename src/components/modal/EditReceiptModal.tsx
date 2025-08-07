@@ -2,7 +2,7 @@ import { useCategories } from '@/src/database/categories';
 import { styles } from '@/src/styles/global';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import { FC, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { Button, Modal, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface EditReceiptModalProps {
@@ -38,12 +38,16 @@ const EditReceiptModal: FC<EditReceiptModalProps> = ({
     const { categories } = useCategories();
     const [rawAmount, setRawAmount] = useState(amount);
 
+    useEffect(() => {
+        setRawAmount(amount);
+    }, [amount]);
+
     const handleDateChange = (_: any, selectedDate?: Date) => {
         setShowDatePicker(false);
         if (selectedDate) setIssuedAt(selectedDate);
     };
 
-    
+
     const getFormattedAmount = (value: string) => {
         if (!value) return '';
         return Number(value).toLocaleString(); // adds commas
