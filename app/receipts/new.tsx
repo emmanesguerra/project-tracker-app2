@@ -65,7 +65,7 @@ export default function NewReceiptPage() {
                 await FileSystem.copyAsync({ from: uri, to: newPath });
 
                 // Save to database
-                await addReceiptImage(db, newReceiptId, newPath);
+                await addReceiptImage(db, newReceiptId, filename);
             }
 
             await updateProjectTotalExpenses(db, numericProjectId);

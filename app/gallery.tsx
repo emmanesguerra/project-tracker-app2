@@ -1,8 +1,8 @@
-import { addReceiptImage } from '@/src/database/receipts';
-import { generateImageFilename } from '@/src/utils/filename';
-import { AntDesign, MaterialIcons } from '@expo/vector-icons'; // ⬅️ ADDED
+import { addReceiptImage, deleteReceiptImage, getImagesByReceiptId } from '@/src/database/receipts';
+import { AntDesign, MaterialIcons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import * as MediaLibrary from 'expo-media-library';
 import { useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import React, { useEffect, useState } from 'react';
@@ -26,79 +26,159 @@ const GalleryPage = () => {
     const db = useSQLiteContext();
     const { projectId, receiptId } = useLocalSearchParams();
     const [imageUris, setImageUris] = useState<string[]>([]);
-    const [selectedIndex, setSelectedIndex] = useState(0);
+    const [images, setImages] = useState<{ id: number; image_name: string }[]>([]);
+    const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
     const [viewerVisible, setViewerVisible] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const loadImages = async () => {
-            try {
-                const folderPath = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}/`;
-                const folderInfo = await FileSystem.getInfoAsync(folderPath);
+    const loadImages = async () => {
+        try {
+            const imageRecords = await getImagesByReceiptId(db, Number(receiptId));
+            setImages(imageRecords);
 
-                if (!folderInfo.exists || !folderInfo.isDirectory) {
-                    console.warn('Folder does not exist:', folderPath);
-                    setImageUris([]);
-                    return;
-                }
-
-                const files = await FileSystem.readDirectoryAsync(folderPath);
-                const imagePaths = files
-                    .filter(file => file.endsWith('.jpg') || file.endsWith('.png'))
-                    .map(file => folderPath + file);
-
-                setImageUris(imagePaths);
-            } catch (error) {
-                console.error('Failed to load images:', error);
-            } finally {
-                setLoading(false);
+            // ✅ Set initial selected image
+            if (imageRecords.length > 0) {
+                setSelectedImageId(imageRecords[0].id);
+            } else {
+                setSelectedImageId(null); // clear selection if no images
             }
-        };
+        } catch (error) {
+            console.error('Error loading images from DB:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         loadImages();
     }, [projectId, receiptId]);
 
-    const openViewer = (index: number) => {
-        setSelectedIndex(index);
+    const openViewer = (imageId: number) => {
+        setSelectedImageId(imageId);
         setViewerVisible(true);
     };
 
+    const getImageUri = (imageName: string): string => {
+        return `${FileSystem.documentDirectory}images/${projectId}/${receiptId}/${imageName}?v=${Date.now()}`;
+    };
+
     const handleAddImage = async () => {
-        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        if (!projectId || !receiptId) return;
 
-        if (permissionResult.status !== 'granted') {
-            Alert.alert('Permission Denied', 'Camera permission is required to take photos.');
-            return;
-        }
+        try {
+            const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permissionResult.granted) {
+                Alert.alert('Permission Denied', 'Camera access is required to take pictures.');
+                return;
+            }
 
-        const result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: false,
-            quality: 1,
-        });
+            const result = await ImagePicker.launchCameraAsync({
+                allowsEditing: false,
+                quality: 1,
+            });
 
-        if (!result.canceled && result.assets.length > 0) {
-            const photo = result.assets[0];
-            const originalUri = photo.uri;
+            if (!result.canceled && result.assets.length > 0) {
+                const image = result.assets[0];
 
-            const newFilename = generateImageFilename(Number(projectId), Number(receiptId), imageUris.length + 1);
-            const folderPath = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}`;
-            const newPath = `${folderPath}/${newFilename}`;
-
-            try {
+                // Define file paths
+                const folderPath = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}/`;
                 await FileSystem.makeDirectoryAsync(folderPath, { intermediates: true });
 
+                const filename = `${Date.now()}.jpg`;
+                const destPath = `${folderPath}${filename}`;
+
+                // Move the file
                 await FileSystem.copyAsync({
-                    from: originalUri,
-                    to: newPath,
+                    from: image.uri,
+                    to: destPath,
                 });
 
-                await addReceiptImage(db, Number(receiptId), newPath);
-                setImageUris(prev => [...prev, newPath]);
-            } catch (err) {
-                console.error('Failed to save image:', err);
-                Alert.alert('Error', 'Could not save image.');
+                // Save to DB
+                await addReceiptImage(db, Number(receiptId), filename);
+
+                // Update UI
+                await loadImages();
             }
+        } catch (error) {
+            console.error('Error capturing or saving image:', error);
+        }
+    };
+
+    const handleDeleteImage = async () => {
+        const selectedImage = images.find((img) => img.id === selectedImageId);
+        if (!selectedImage || !projectId || !receiptId) return;
+
+        Alert.alert(
+            'Delete Image',
+            `Are you sure you want to delete this image?\n\nName: ${selectedImage.image_name}\nID: ${selectedImage.id}`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            // Step 1: Delete from DB
+                            await deleteReceiptImage(db, selectedImage.id);
+
+                            // Step 2: Delete from File System
+                            const filePath = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}/${selectedImage.image_name}`;
+                            const fileInfo = await FileSystem.getInfoAsync(filePath);
+                            if (fileInfo.exists) {
+                                await FileSystem.deleteAsync(filePath);
+                                console.log(`Deleted file: ${filePath}`);
+                            } else {
+                                console.warn(`File not found: ${filePath}`);
+                            }
+
+                            // Step 3: Update state
+                            const updatedImages = images.filter((img) => img.id !== selectedImage.id);
+                            setImages(updatedImages);
+
+                            if (updatedImages.length > 0) {
+                                // Find index of the deleted image
+                                const deletedIndex = images.findIndex((img) => img.id === selectedImage.id);
+
+                                // Prefer the next image; fallback to previous if at end
+                                const nextIndex = deletedIndex < updatedImages.length ? deletedIndex : updatedImages.length - 1;
+                                setSelectedImageId(updatedImages[nextIndex].id);
+                            } else {
+                                setSelectedImageId(null); // No images left
+                            }
+
+                        } catch (error) {
+                            console.error('Error deleting image:', error);
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    const handleDownloadImage = async () => {
+        const selectedImage = images.find((img) => img.id === selectedImageId);
+        if (!selectedImage || !projectId || !receiptId) return;
+
+        try {
+            // 1. Get permission
+            const { status } = await MediaLibrary.requestPermissionsAsync();
+
+            // 2. Build source path
+            const srcPath = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}/${selectedImage.image_name}`;
+            const fileInfo = await FileSystem.getInfoAsync(srcPath);
+            if (!fileInfo.exists) {
+                Alert.alert('Download Failed', 'Image file does not exist.');
+                return;
+            }
+
+            // 3. Copy to Media Library (Downloads album)
+            const asset = await MediaLibrary.createAssetAsync(srcPath);
+            await MediaLibrary.createAlbumAsync('Downloads', asset, false);
+
+            Alert.alert('Download Successful', 'Image saved to Downloads folder.');
+            console.log('Downloaded to gallery:', asset.uri);
+        } catch (error) {
+            Alert.alert('Permission Denied', 'Storage permission is required to save images.');
         }
     };
 
@@ -113,19 +193,31 @@ const GalleryPage = () => {
     return (
         <SafeAreaView style={styles.container}>
             {/* Top Preview with Delete Icon */}
-            {imageUris.length > 0 ? (
+            {images.length > 0 && selectedImageId !== null ? (
                 <View>
                     <Image
-                        source={{ uri: imageUris[selectedIndex] }}
+                        source={{
+                            uri: getImageUri(
+                                images.find((img) => img.id === selectedImageId)?.image_name || ''
+                            ),
+                        }}
                         style={styles.previewImage}
                         resizeMode="contain"
                     />
-                    <TouchableOpacity
-                        style={styles.deleteIcon}
-                        onPress={() => Alert.alert('Delete Clicked', 'You clicked the delete icon!')}
-                    >
-                        <MaterialIcons name="delete" size={30} color="red" />
-                    </TouchableOpacity>
+                    <View style={styles.topButtonsContainer}>
+                        <TouchableOpacity
+                            style={styles.deleteIcon}
+                            onPress={handleDeleteImage}
+                        >
+                            <MaterialIcons name="delete" size={30} color="white" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.downloadIcon}
+                            onPress={handleDownloadImage}
+                        >
+                            <MaterialIcons name="file-download" size={30} color="white" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
             ) : (
                 <View style={[styles.previewImage, styles.centered]}>
@@ -146,24 +238,26 @@ const GalleryPage = () => {
                     <AntDesign name="camerao" size={50} color="white" />
                 </TouchableOpacity>
 
-                {imageUris.map((uri, index) => (
+                {images.map((image) => (
                     <TouchableOpacity
-                        key={index}
-                        onPress={() => setSelectedIndex(index)}
+                        key={image.id}
+                        onPress={() => setSelectedImageId(image.id)}
                         style={[
                             styles.thumbnailWrapper,
-                            selectedIndex === index && styles.activeThumbnail,
+                            selectedImageId === image.id && styles.activeThumbnail,
                         ]}
                     >
-                        <Image source={{ uri }} style={styles.thumbnail} />
+                        <Image source={{ uri: getImageUri(image.image_name) }} style={styles.thumbnail} />
                     </TouchableOpacity>
                 ))}
             </ScrollView>
 
             {/* Fullscreen Viewer */}
             <ImageViewing
-                images={imageUris.map(uri => ({ uri }))}
-                imageIndex={selectedIndex}
+                images={images.map((img) => ({ uri: getImageUri(img.image_name) }))}
+                imageIndex={
+                    images.findIndex((img) => img.id === selectedImageId)
+                }
                 visible={viewerVisible}
                 onRequestClose={() => setViewerVisible(false)}
             />
@@ -227,12 +321,24 @@ const styles = StyleSheet.create({
         color: '#fff',
     },
     deleteIcon: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
         backgroundColor: 'rgba(177, 41, 41, 0.6)',
         padding: 6,
         borderRadius: 20,
+    },
+    topButtonsContainer: {
+        position: 'absolute',
+        top: 20,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
         zIndex: 10,
+    },
+
+    downloadIcon: {
+        backgroundColor: 'rgba(30, 150, 30, 0.8)',
+        padding: 6,
+        borderRadius: 20,
     },
 });

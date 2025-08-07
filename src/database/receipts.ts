@@ -153,15 +153,30 @@ export async function deleteReceipt(
 export const getImagesByReceiptId = async (
     db: SQLiteDatabase,
     receiptId: number
-): Promise<string[]> => {
+): Promise<{ id: number; image_name: string }[]> => {
     try {
-        const images = await db.getAllAsync<{ image_name: string }>(
-            'SELECT image_name FROM receipt_images WHERE receipt_id = ?',
+        const images = await db.getAllAsync<{ id: number; image_name: string }>(
+            'SELECT id, image_name FROM receipt_images WHERE receipt_id = ?',
             [receiptId]
         );
-        return images.map((img) => img.image_name);
+        return images;
     } catch (error) {
         console.error(`Error fetching images for receipt ${receiptId}:`, error);
         return [];
     }
 };
+
+export async function deleteReceiptImage(
+    db: ReturnType<typeof useSQLiteContext>,
+    imageId: number,
+): Promise<void> {
+    try {
+        await db.runAsync(
+            `DELETE FROM receipt_images WHERE id = ?`,
+            [imageId]
+        );
+    } catch (error) {
+        console.error(`Error deleting image with ID ${imageId}:`, error);
+        throw error;
+    }
+}

@@ -5,6 +5,7 @@ import { deleteReceipt, getImagesByReceiptId, updateReceipt, useReceipts } from 
 import { styles } from '@/src/styles/global';
 import { deleteProjectFolder, deleteReceiptFolder } from '@/src/utils/imageUtils';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as FileSystem from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
@@ -82,13 +83,30 @@ export default function ProjectPage() {
     };
 
     const fetchImagesForReceipts = async () => {
-        if (!receipts || receipts.length === 0) return;
+        if (!receipts || receipts.length === 0 || !project?.id) return;
+
         const imagesMap: Record<number, string[]> = {};
 
         for (const receipt of receipts) {
             try {
-                const images = await getImagesByReceiptId(db, receipt.id);
-                imagesMap[receipt.id] = images;
+                const imageRecords = await getImagesByReceiptId(db, receipt.id); // [{ id, image_name }]
+                const folderPath = `${FileSystem.documentDirectory}images/${project.id}/${receipt.id}/`;
+
+                const fullPaths: string[] = [];
+
+                for (const img of imageRecords) {
+                    const fileUri = `${folderPath}${img.image_name}`;
+                    const fileInfo = await FileSystem.getInfoAsync(fileUri);
+                    if (fileInfo.exists) {
+                        fullPaths.push(fileUri);
+                    } else {
+                        console.warn(`Image file not found: ${fileUri}`);
+                    }
+                }
+
+                if (fullPaths.length > 0) {
+                    imagesMap[receipt.id] = fullPaths;
+                }
 
             } catch (error) {
                 console.error(`Error loading images for receipt ${receipt.id}:`, error);
