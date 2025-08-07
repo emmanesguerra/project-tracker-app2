@@ -1,9 +1,11 @@
 import { useCategories } from '@/src/database/categories';
 import { styles } from '@/src/styles/global';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
+// Removed Picker
+// import { Picker } from '@react-native-picker/picker';
 import { FC, useEffect, useState } from 'react';
 import { Button, Modal, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import DropDownPicker from 'react-native-dropdown-picker'; // ✅ ADDED
 
 interface EditReceiptModalProps {
     visible: boolean;
@@ -38,15 +40,26 @@ const EditReceiptModal: FC<EditReceiptModalProps> = ({
     const { categories } = useCategories();
     const [rawAmount, setRawAmount] = useState(amount);
 
+    // ✅ DropDownPicker State
+    const [open, setOpen] = useState(false);
+    const [items, setItems] = useState<{ label: string; value: number }[]>([]);
+
     useEffect(() => {
         setRawAmount(amount);
     }, [amount]);
+
+    useEffect(() => {
+        const categoryItems = categories.map((cat) => ({
+            label: cat.name,
+            value: cat.id,
+        }));
+        setItems(categoryItems);
+    }, [categories]);
 
     const handleDateChange = (_: any, selectedDate?: Date) => {
         setShowDatePicker(false);
         if (selectedDate) setIssuedAt(selectedDate);
     };
-
 
     const getFormattedAmount = (value: string) => {
         if (!value) return '';
@@ -54,7 +67,6 @@ const EditReceiptModal: FC<EditReceiptModalProps> = ({
     };
 
     const handleChange = (text: string) => {
-        // Remove all non-digit characters
         const clean = text.replace(/[^0-9]/g, '');
         setRawAmount(clean);
         setAmount(clean);
@@ -75,21 +87,32 @@ const EditReceiptModal: FC<EditReceiptModalProps> = ({
                     />
 
                     <Text style={styles.label}>Category</Text>
-                    <View style={styles.pickerWrapper}>
-                        <Picker
-                            selectedValue={categoryId}
-                            onValueChange={(itemValue) => setCategoryId(itemValue)}
-                        >
-                            <Picker.Item label="Select Category" value={null} />
-                            {categories.map((category) => (
-                                <Picker.Item key={category.id} label={category.name} value={category.id} />
-                            ))}
-                        </Picker>
+                    <View style={{ zIndex: 9999 }}>
+                        <DropDownPicker
+                            open={open}
+                            setOpen={setOpen}
+                            value={categoryId}
+                            setValue={(val) => {
+                                if (typeof val === 'function') {
+                                    setCategoryId(val(categoryId)); // safely call the callback
+                                } else {
+                                    setCategoryId(val);
+                                }
+                            }}
+                            items={items}
+                            setItems={setItems}
+                            placeholder="Select Category"
+                            style={[
+                                styles.input, // your global/base style
+                                { marginBottom: open ? 120 : 16 } // conditional style
+                            ]}
+                            dropDownContainerStyle={{ zIndex: 9999, borderColor: '#ccc' }}
+                        />
                     </View>
 
                     <Text style={styles.label}>Amount (₱)</Text>
                     <TextInput
-                        value={getFormattedAmount(rawAmount)} // display formatted
+                        value={getFormattedAmount(rawAmount)}
                         onChangeText={handleChange}
                         placeholder="Enter amount"
                         keyboardType="numeric"

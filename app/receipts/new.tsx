@@ -6,12 +6,12 @@ import { addReceipt, addReceiptImage } from '@/src/database/receipts';
 import { styles } from '@/src/styles/global';
 import { generateImageFilename } from '@/src/utils/filename';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
 import * as FileSystem from 'expo-file-system';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import DropDownPicker from 'react-native-dropdown-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function NewReceiptPage() {
@@ -24,7 +24,10 @@ export default function NewReceiptPage() {
     const [amount, setAmount] = useState('');
     const [issuedAt, setIssuedAt] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
+
     const [categoryId, setCategoryId] = useState<number | null>(null);
+    const [openCategory, setOpenCategory] = useState(false);
+    const [categoryItems, setCategoryItems] = useState<{ label: string; value: number }[]>([]);
 
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState('');
@@ -32,6 +35,14 @@ export default function NewReceiptPage() {
     const { categories, refreshCategories } = useCategories();
     const [imageUris, setImageUris] = useState<string[]>([]);
     const [rawAmount, setRawAmount] = useState('');
+
+    useEffect(() => {
+        const items = categories.map((category) => ({
+            label: category.name,
+            value: category.id,
+        }));
+        setCategoryItems(items);
+    }, [categories]);
 
     const handleSave = async () => {
         if (!name || !amount || isNaN(Number(amount))) {
@@ -56,15 +67,12 @@ export default function NewReceiptPage() {
                 const folderPath = `images/${projectId}/${newReceiptId}`;
                 const newPath = `${FileSystem.documentDirectory}${folderPath}/${filename}`;
 
-                // Ensure directory exists
                 await FileSystem.makeDirectoryAsync(`${FileSystem.documentDirectory}${folderPath}`, {
                     intermediates: true,
                 });
 
-                // Copy image to app storage
                 await FileSystem.copyAsync({ from: uri, to: newPath });
 
-                // Save to database
                 await addReceiptImage(db, newReceiptId, filename);
             }
 
@@ -102,16 +110,15 @@ export default function NewReceiptPage() {
     };
 
     const handleCancel = () => {
-        router.back(); // This navigates back to the previous screen
+        router.back();
     };
 
     const getFormattedAmount = (value: string) => {
         if (!value) return '';
-        return Number(value).toLocaleString(); // adds commas
+        return Number(value).toLocaleString();
     };
 
     const handleChange = (text: string) => {
-        // Remove all non-digit characters
         const clean = text.replace(/[^0-9]/g, '');
         setRawAmount(clean);
         setAmount(clean);
@@ -120,7 +127,7 @@ export default function NewReceiptPage() {
     return (
         <SafeAreaView style={styles.container}>
             <Text style={styles.pageSubtitle}>{projectName ? `Receipt for` : 'New Receipt'}</Text>
-            <Text style={styles.pageTitle}>{projectName ? `${projectName}` : 'New Receipt'}</Text>
+            <Text style={styles.pageTitle}>{projectName || 'New Receipt'}</Text>
 
             <Text style={styles.label}>Name</Text>
             <TextInput
@@ -136,20 +143,28 @@ export default function NewReceiptPage() {
                     <Text style={styles.addCategory}>+ Add New Category</Text>
                 </TouchableOpacity>
             </View>
-            <View style={styles.pickerWrapper}>
-                <Picker selectedValue={categoryId} onValueChange={(itemValue) => setCategoryId(itemValue)}>
-                    <Picker.Item label="Select Category" value={null} />
-                    {categories.map((category) => (
-                        <Picker.Item key={category.id} label={category.name} value={category.id} />
-                    ))}
-                </Picker>
-            </View>
+
+            <DropDownPicker
+                open={openCategory}
+                value={categoryId}
+                items={categoryItems}
+                setOpen={setOpenCategory}
+                setValue={setCategoryId}
+                setItems={setCategoryItems}
+                placeholder="Select Category"
+                style={[
+                    styles.input, // your global/base style
+                    { marginBottom: openCategory ? 120 : 16 } // conditional style
+                ]}
+                dropDownContainerStyle={{ zIndex: 1000, borderColor: '#ccc' }}
+                zIndex={1000}
+            />
 
             <View style={styles.row}>
                 <View style={styles.halfInputContainer}>
                     <Text style={styles.label}>Amount (₱)</Text>
                     <TextInput
-                        value={getFormattedAmount(rawAmount)} // display formatted
+                        value={getFormattedAmount(rawAmount)}
                         onChangeText={handleChange}
                         placeholder="Enter amount"
                         keyboardType="numeric"

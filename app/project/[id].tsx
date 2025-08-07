@@ -6,7 +6,8 @@ import { deleteReceipt, getImagesByReceiptId, updateReceipt, useReceipts } from 
 import { styles } from '@/src/styles/global';
 import { deleteProjectFolder, deleteReceiptFolder } from '@/src/utils/imageUtils';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Picker } from '@react-native-picker/picker';
+// Removed Picker import
+// import { Picker } from '@react-native-picker/picker';
 import * as FileSystem from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -20,6 +21,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import DropDownPicker from 'react-native-dropdown-picker'; // ✅ ADDED
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProjectPage() {
@@ -42,6 +44,23 @@ export default function ProjectPage() {
     const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
     const { receipts, refreshReceipts } = useReceipts(project?.id, searchText, selectedFilter);
     const { categories } = useCategories();
+
+    // ✅ DropDownPicker states
+    const [open, setOpen] = useState(false);
+    const [filterValue, setFilterValue] = useState<string | null>(null);
+    const [filterItems, setFilterItems] = useState<{ label: string; value: string }[]>([]);
+
+    useEffect(() => {
+        setSelectedFilter(filterValue);
+    }, [filterValue]);
+
+    useEffect(() => {
+        const items = categories.map(c => ({
+            label: c.name,
+            value: c.id.toString()
+        }));
+        setFilterItems([{ label: 'All Categories', value: '' }, ...items]);
+    }, [categories]);
 
     const fetchProject = async () => {
         try {
@@ -75,11 +94,10 @@ export default function ProjectPage() {
                 name: receiptName.trim(),
                 amount: parseFloat(amount),
                 categoryId,
-                issuedAt: issuedAt.toISOString().split('T')[0], // format YYYY-MM-DD
+                issuedAt: issuedAt.toISOString().split('T')[0],
             });
 
             await updateProjectTotalExpenses(db, Number(id));
-
             await refreshReceipts();
             await fetchProject();
             setModalReceiptVisible(false);
@@ -95,7 +113,7 @@ export default function ProjectPage() {
 
         for (const receipt of receipts) {
             try {
-                const imageRecords = await getImagesByReceiptId(db, receipt.id); // [{ id, image_name }]
+                const imageRecords = await getImagesByReceiptId(db, receipt.id);
                 const folderPath = `${FileSystem.documentDirectory}images/${project.id}/${receipt.id}/`;
 
                 const fullPaths: string[] = [];
@@ -105,8 +123,6 @@ export default function ProjectPage() {
                     const fileInfo = await FileSystem.getInfoAsync(fileUri);
                     if (fileInfo.exists) {
                         fullPaths.push(fileUri);
-                    } else {
-                        console.warn(`Image file not found: ${fileUri}`);
                     }
                 }
 
@@ -175,7 +191,7 @@ export default function ProjectPage() {
             <Text style={styles.pageTitle}>{project.name}</Text>
 
             <TouchableOpacity style={styles.box} onPress={() => setModalVisible(true)}>
-                {project.description && project.description.length > 0 && (
+                {project.description?.length > 0 && (
                     <Text style={styles.label}>{project.description}</Text>
                 )}
                 {project.budget != null && project.budget !== 0 && (
@@ -188,7 +204,6 @@ export default function ProjectPage() {
 
             <View style={styles.receiptHeader}>
                 <Text style={styles.receiptTitle}>Receipts</Text>
-
                 <TouchableOpacity
                     style={styles.addButton}
                     onPress={() =>
@@ -200,23 +215,29 @@ export default function ProjectPage() {
                     <Text style={styles.addButtonText}>+ Add receipt</Text>
                 </TouchableOpacity>
             </View>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
+
+            <View style={{ flexDirection: 'row', gap: 10, zIndex: 1000 }}>
                 <TextInput
                     style={[styles.input, { flex: 1 }]}
                     placeholder="Search receipts..."
                     value={searchText}
                     onChangeText={setSearchText}
                 />
-                <View style={[styles.pickerWrapper, { flex: 1 }]}>
-                    <Picker
-                        selectedValue={selectedFilter}
-                        onValueChange={(itemValue) => setSelectedFilter(itemValue)}
-                    >
-                        <Picker.Item label="Filter By" value={null} />
-                        {categories.map((category) => (
-                            <Picker.Item key={category.id} label={category.name} value={category.id} />
-                        ))}
-                    </Picker>
+                <View style={{ flex: 1 }}>
+                    <DropDownPicker
+                        open={open}
+                        setOpen={setOpen}
+                        value={filterValue}
+                        setValue={setFilterValue}
+                        items={filterItems}
+                        setItems={setFilterItems}
+                        placeholder="Filter By"
+                        style={[
+                            styles.input, // your global/base style
+                            { height: 40 } // conditional style
+                        ]}
+                        dropDownContainerStyle={{ zIndex: 1000, borderColor: '#ccc' }}
+                    />
                 </View>
             </View>
 
