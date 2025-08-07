@@ -10,8 +10,15 @@ import * as FileSystem from 'expo-file-system';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { Alert, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker';
+import {
+    Alert,
+    Platform,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import RNPickerSelect from 'react-native-picker-select'; // ✅ REPLACED
 
 export default function NewReceiptPage() {
     const { projectId, projectName } = useLocalSearchParams();
@@ -25,7 +32,6 @@ export default function NewReceiptPage() {
     const [showDatePicker, setShowDatePicker] = useState(false);
 
     const [categoryId, setCategoryId] = useState<number | null>(null);
-    const [openCategory, setOpenCategory] = useState(false);
     const [categoryItems, setCategoryItems] = useState<{ label: string; value: number }[]>([]);
 
     const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -143,21 +149,32 @@ export default function NewReceiptPage() {
                 </TouchableOpacity>
             </View>
 
-            <DropDownPicker
-                open={openCategory}
-                value={categoryId}
-                items={categoryItems}
-                setOpen={setOpenCategory}
-                setValue={setCategoryId}
-                setItems={setCategoryItems}
-                placeholder="Select Category"
-                style={[
-                    styles.input, // your global/base style
-                    { marginBottom: openCategory ? 120 : 16 } // conditional style
-                ]}
-                dropDownContainerStyle={{ zIndex: 1000, borderColor: '#ccc' }}
-                zIndex={1000}
-            />
+            <View style={{ marginBottom: 16 }}>
+                <RNPickerSelect
+                    onValueChange={(value) => setCategoryId(value)}
+                    value={categoryId}
+                    items={categoryItems}
+                    placeholder={{ label: 'Select Category', value: null }}
+                    useNativeAndroidPickerStyle={false} // required for custom styles
+                    style={{
+                        inputIOS: {
+                            ...styles.input,
+                            paddingVertical: 12,
+                            paddingHorizontal: 10,
+                            color: '#000',
+                        },
+                        inputAndroid: {
+                            ...styles.input,
+                            paddingVertical: 8,
+                            paddingHorizontal: 10,
+                            color: '#000',
+                        },
+                        placeholder: {
+                            color: '#888',
+                        },
+                    }}
+                />
+            </View>
 
             <View style={styles.row}>
                 <View style={styles.halfInputContainer}>

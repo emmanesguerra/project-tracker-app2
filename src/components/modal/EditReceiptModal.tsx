@@ -1,11 +1,18 @@
 import { useCategories } from '@/src/database/categories';
 import { styles } from '@/src/styles/global';
 import DateTimePicker from '@react-native-community/datetimepicker';
-// Removed Picker
-// import { Picker } from '@react-native-picker/picker';
 import { FC, useEffect, useState } from 'react';
-import { Button, Modal, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker'; // ✅ ADDED
+import {
+    Button,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import RNPickerSelect from 'react-native-picker-select';
 
 interface EditReceiptModalProps {
     visible: boolean;
@@ -40,21 +47,9 @@ const EditReceiptModal: FC<EditReceiptModalProps> = ({
     const { categories } = useCategories();
     const [rawAmount, setRawAmount] = useState(amount);
 
-    // ✅ DropDownPicker State
-    const [open, setOpen] = useState(false);
-    const [items, setItems] = useState<{ label: string; value: number }[]>([]);
-
     useEffect(() => {
         setRawAmount(amount);
     }, [amount]);
-
-    useEffect(() => {
-        const categoryItems = categories.map((cat) => ({
-            label: cat.name,
-            value: cat.id,
-        }));
-        setItems(categoryItems);
-    }, [categories]);
 
     const handleDateChange = (_: any, selectedDate?: Date) => {
         setShowDatePicker(false);
@@ -63,7 +58,7 @@ const EditReceiptModal: FC<EditReceiptModalProps> = ({
 
     const getFormattedAmount = (value: string) => {
         if (!value) return '';
-        return Number(value).toLocaleString(); // adds commas
+        return Number(value).toLocaleString();
     };
 
     const handleChange = (text: string) => {
@@ -87,26 +82,17 @@ const EditReceiptModal: FC<EditReceiptModalProps> = ({
                     />
 
                     <Text style={styles.label}>Category</Text>
-                    <View style={{ zIndex: 9999 }}>
-                        <DropDownPicker
-                            open={open}
-                            setOpen={setOpen}
+                    <View style={pickerStyles.wrapper}>
+                        <RNPickerSelect
+                            onValueChange={(value) => setCategoryId(value)}
                             value={categoryId}
-                            setValue={(val) => {
-                                if (typeof val === 'function') {
-                                    setCategoryId(val(categoryId)); // safely call the callback
-                                } else {
-                                    setCategoryId(val);
-                                }
-                            }}
-                            items={items}
-                            setItems={setItems}
-                            placeholder="Select Category"
-                            style={[
-                                styles.input, // your global/base style
-                                { marginBottom: open ? 120 : 16 } // conditional style
-                            ]}
-                            dropDownContainerStyle={{ zIndex: 9999, borderColor: '#ccc' }}
+                            placeholder={{ label: 'Select a category', value: null }}
+                            items={categories.map((cat) => ({
+                                label: cat.name,
+                                value: cat.id,
+                            }))}
+                            style={pickerStyles}
+                            useNativeAndroidPickerStyle={false}
                         />
                     </View>
 
@@ -150,3 +136,25 @@ const EditReceiptModal: FC<EditReceiptModalProps> = ({
 };
 
 export default EditReceiptModal;
+
+const pickerStyles = StyleSheet.create({
+    wrapper: {
+        borderWidth: 1,
+        borderColor: '#999',
+        borderRadius: 6,
+        marginBottom: 16,
+    },
+    inputIOS: {
+        paddingVertical: 12,
+        paddingHorizontal: 10,
+        color: 'black',
+    },
+    inputAndroid: {
+        paddingVertical: 10,
+        paddingHorizontal: 10,
+        color: 'black',
+    },
+    placeholder: {
+        color: '#888',
+    },
+});
