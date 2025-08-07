@@ -1,6 +1,7 @@
-import { deleteReceiptImage, getImagesByReceiptId } from '@/src/database/receipts';
-import { AntDesign, MaterialIcons } from '@expo/vector-icons'; // ⬅️ ADDED
+import { addReceiptImage, deleteReceiptImage, getImagesByReceiptId } from '@/src/database/receipts';
+import { AntDesign, MaterialIcons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import React, { useEffect, useState } from 'react';
@@ -61,6 +62,45 @@ const GalleryPage = () => {
     };
 
     const handleAddImage = async () => {
+        if (!projectId || !receiptId) return;
+
+        try {
+            const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permissionResult.granted) {
+                Alert.alert('Permission Denied', 'Camera access is required to take pictures.');
+                return;
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                allowsEditing: false,
+                quality: 1,
+            });
+
+            if (!result.canceled && result.assets.length > 0) {
+                const image = result.assets[0];
+
+                // Define file paths
+                const folderPath = `${FileSystem.documentDirectory}images/${projectId}/${receiptId}/`;
+                await FileSystem.makeDirectoryAsync(folderPath, { intermediates: true });
+
+                const filename = `${Date.now()}.jpg`;
+                const destPath = `${folderPath}${filename}`;
+
+                // Move the file
+                await FileSystem.copyAsync({
+                    from: image.uri,
+                    to: destPath,
+                });
+
+                // Save to DB
+                await addReceiptImage(db, Number(receiptId), filename);
+
+                // Update UI
+                await loadImages();
+            }
+        } catch (error) {
+            console.error('Error capturing or saving image:', error);
+        }
     };
 
     const handleDeleteImage = async () => {
