@@ -13,7 +13,8 @@ export interface Receipt {
     updated_at: string;
 }
 
-export function useReceipts(projectId: number, searchText: string) {
+
+export function useReceipts(projectId: number, searchText: string, selectedFilter: string | null) {
     const db = useSQLiteContext();
     const [receipts, setReceipts] = useState<Receipt[]>([]);
 
@@ -31,11 +32,15 @@ export function useReceipts(projectId: number, searchText: string) {
 
             const params: any[] = [projectId];
 
-            // Add search filter
             if (searchText.trim() !== '') {
                 query += ` AND (r.name LIKE ? OR CAST(r.amount AS TEXT) LIKE ?)`;
                 const keyword = `%${searchText}%`;
                 params.push(keyword, keyword);
+            }
+
+            if (selectedFilter) {
+                query += ` AND r.category_id = ?`;
+                params.push(selectedFilter);
             }
 
             query += ` ORDER BY r.issued_at DESC, r.id DESC`;
@@ -51,7 +56,7 @@ export function useReceipts(projectId: number, searchText: string) {
         if (projectId) {
             fetchReceipts();
         }
-    }, [projectId, searchText]); // 👈 watch searchText changes
+    }, [projectId, searchText, selectedFilter]); // 👈 now includes category
 
     return { receipts, refreshReceipts: fetchReceipts };
 }

@@ -1,5 +1,6 @@
 import EditProjectModal from '@/src/components/modal/EditProjectModal';
 import EditReceiptModal from '@/src/components/modal/EditReceiptModal';
+import { useCategories } from '@/src/database/categories';
 import { deleteProjectAndReceipts, getProjectById, updateProject as saveProjectChanges, updateProjectTotalExpenses } from '@/src/database/project';
 import { deleteReceipt, getImagesByReceiptId, updateReceipt, useReceipts } from '@/src/database/receipts';
 import { styles } from '@/src/styles/global';
@@ -39,7 +40,8 @@ export default function ProjectPage() {
     const [receiptImages, setReceiptImages] = useState<Record<number, string[]>>({});
     const [searchText, setSearchText] = useState('');
     const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
-    const { receipts, refreshReceipts } = useReceipts(project?.id, searchText);
+    const { receipts, refreshReceipts } = useReceipts(project?.id, searchText, selectedFilter);
+    const { categories } = useCategories();
 
     const fetchProject = async () => {
         try {
@@ -211,10 +213,9 @@ export default function ProjectPage() {
                         onValueChange={(itemValue) => setSelectedFilter(itemValue)}
                     >
                         <Picker.Item label="Filter By" value={null} />
-                        <Picker.Item label="Food" value="Food" />
-                        <Picker.Item label="Transport" value="Transport" />
-                        <Picker.Item label="Office" value="Office" />
-                        {/* Add more category options as needed */}
+                        {categories.map((category) => (
+                            <Picker.Item key={category.id} label={category.name} value={category.id} />
+                        ))}
                     </Picker>
                 </View>
             </View>
