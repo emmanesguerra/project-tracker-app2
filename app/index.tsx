@@ -6,7 +6,6 @@ import Octicons from '@expo/vector-icons/Octicons';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Pressable, StatusBar, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomePage() {
   const { projects, refreshProjects, db } = useProjects();
@@ -30,7 +29,7 @@ export default function HomePage() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
       <View style={styles.header}>
@@ -41,35 +40,36 @@ export default function HomePage() {
         </Pressable>
       </View>
 
-      <FlatList
-        data={projects}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <Link
-            href={{ pathname: '/project/[id]', params: { id: item.id.toString() } }}
-            asChild
-          >
-            <Pressable style={styles.projectItem}>
-              <View style={styles.projectHeader}>
-                <Octicons name="project" size={20} color="#333" style={styles.projectIcon} />
-                <Text style={styles.projectName}>{item.name}</Text>
-              </View>
+      <View style={{ flex: 1, paddingBottom: 20 }}>
+        <FlatList
+          data={projects}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => (
+            <Link
+              href={{ pathname: '/project/[id]', params: { id: item.id.toString() } }}
+              asChild
+            >
+              <Pressable style={styles.projectItem}>
+                <View style={styles.projectHeader}>
+                  <Octicons name="project" size={20} color="#333" style={styles.projectIcon} />
+                  <Text style={styles.projectName}>{item.name}</Text>
+                </View>
 
-              {item.description && item.description.length > 0 && (
-                <Text style={styles.projectDescription}>{item.description}</Text>
-              )}
+                {item.description && item.description.length > 0 && (
+                  <Text style={styles.projectDescription}>{item.description}</Text>
+                )}
 
-              {item.budget != null && item.budget !== 0 && (
-                <Text style={styles.projectBudget}>Budget: ₱{Number(item.budget).toLocaleString()}</Text>
-              )}
+                {item.budget != null && item.budget !== 0 && (
+                  <Text style={styles.projectBudget}>Budget: ₱{Number(item.budget).toLocaleString()}</Text>
+                )}
 
-              <Text style={styles.projectDate}>Created: {item.created_at}</Text>
-            </Pressable>
-          </Link>
-        )}
-      />
-
+                <Text style={styles.projectDate}>Created: {item.created_at}</Text>
+              </Pressable>
+            </Link>
+          )}
+        />
+      </View>
       <View style={styles.exportButtonContainer}>
         <TouchableOpacity onPress={handleExport} style={styles.exportButton}>
           <Text style={styles.exportButtonText}>Export to CSV</Text>
@@ -83,6 +83,6 @@ export default function HomePage() {
         newProjectName={newProjectName}
         setNewProjectName={setNewProjectName}
       />
-    </SafeAreaView>
+    </View>
   );
 }

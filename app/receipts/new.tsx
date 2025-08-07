@@ -12,7 +12,6 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function NewReceiptPage() {
     const { projectId, projectName } = useLocalSearchParams();
@@ -125,7 +124,7 @@ export default function NewReceiptPage() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <Text style={styles.pageSubtitle}>{projectName ? `Receipt for` : 'New Receipt'}</Text>
             <Text style={styles.pageTitle}>{projectName || 'New Receipt'}</Text>
 
@@ -209,6 +208,6 @@ export default function NewReceiptPage() {
                 categoryName={newCategoryName}
                 setCategoryName={setNewCategoryName}
             />
-        </SafeAreaView>
+        </View>
     );
 }

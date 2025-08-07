@@ -18,7 +18,6 @@ import {
     View
 } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
@@ -191,7 +190,7 @@ const GalleryPage = () => {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             {/* Top Preview with Delete Icon */}
             {images.length > 0 && selectedImageId !== null ? (
                 <View>
@@ -261,7 +260,7 @@ const GalleryPage = () => {
                 visible={viewerVisible}
                 onRequestClose={() => setViewerVisible(false)}
             />
-        </SafeAreaView>
+        </View>
     );
 };
 

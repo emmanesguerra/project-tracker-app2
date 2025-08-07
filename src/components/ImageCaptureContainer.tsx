@@ -1,6 +1,7 @@
 import { AntDesign, Entypo } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = {
     imageUris: string[];
@@ -31,7 +32,7 @@ export default function ImageCaptureContainer({ imageUris, onImageChange }: Prop
     };
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <View style={styles.buttonRow}>
                 <TouchableOpacity style={styles.button} onPress={handleTakePhoto}>
                     <AntDesign name="camerao" size={20} color="white" style={styles.icon} />
@@ -47,7 +48,7 @@ export default function ImageCaptureContainer({ imageUris, onImageChange }: Prop
                     <Image key={index} source={{ uri }} style={styles.preview} />
                 ))}
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 }
 

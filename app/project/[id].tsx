@@ -187,7 +187,7 @@ export default function ProjectPage() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <Text style={styles.pageTitle}>{project.name}</Text>
 
             <TouchableOpacity style={styles.box} onPress={() => setModalVisible(true)}>
@@ -328,6 +328,6 @@ export default function ProjectPage() {
                 onSave={handleSaveReceiptChanges}
                 onDelete={handleDeleteReceipt}
             />
-        </SafeAreaView>
+        </View>
     );
 }

@@ -322,7 +322,7 @@ export const styles = StyleSheet.create({
     },
     buttonContainer: {
         position: 'absolute',
-        bottom: 50,
+        bottom: 20,
         left: 20,
         right: 20,
         flexDirection: 'row',
@@ -353,12 +353,8 @@ export const styles = StyleSheet.create({
     },
 
     exportButtonContainer: {
-        position: 'absolute',
-        bottom: 20,
-        left: 0,
-        right: 0,
-        alignItems: 'center',
-        paddingHorizontal: 20,
+        borderTopWidth: 1,
+        borderColor: '#eee',
     },
     exportButton: {
         backgroundColor: '#4CAF50',
