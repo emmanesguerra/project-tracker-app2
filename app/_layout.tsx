@@ -1,4 +1,4 @@
-import { dropDatabase, initializeDatabase } from '@/src/database/init';
+import { initializeDatabase } from '@/src/database/init';
 
 import { Slot } from 'expo-router';
 import { SQLiteProvider } from 'expo-sqlite';
@@ -7,7 +7,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Layout() {
   const handleInit = async (db: any) => {
-    await dropDatabase(db);
+    // await dropDatabase(db);
     await initializeDatabase(db);
     // await insertDummyData(db);
   };
